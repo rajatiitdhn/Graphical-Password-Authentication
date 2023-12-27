@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <title>Graphical Password Authentication</title>
+</head>
+
+<body>
+
+    <div class="container" id="container">
+        
+        <div class="form-container sign-in">
+            <div class="center">
+                <h1>Sign In</h1>
+                <div class="social-icons">
+                    <a href="#" class="icon"><i class="fa-brands fa-google-plus-g"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-facebook-f"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-github"></i></a>
+                    <a href="#" class="icon"><i class="fa-brands fa-linkedin-in"></i></a>
+                </div>
+                <div class="alert">Authentication successful!</div>
+                <div class="alert2">Authentication failed</div>
+                <div class="alert3">Account locked. Exceeded maximum login attempts</div>
+                <div class="alert4">Account is locked. Try again later</div>
+                <input type="text" placeholder="Enter username" id="username">
+                <div class="sec">
+                    <img src="/photos/a.jpeg" id="img 1" alt="image 1" >
+                    <img src="/photos/b.jpeg" id="img 2" alt="image 2" >
+                    <img src="/photos/c.jpeg" id="img 3" alt="image 3" >
+                    <img src="/photos/d.jpeg" id="img 4" alt="image 4" >
+                    <img src="/photos/e.jpeg" id="img 5" alt="image 5" >
+                    <img src="/photos/f.jpeg" id="img 6" alt="image 6" >
+                    <img src="/photos/g.jpeg" id="img 7" alt="image 7" >
+                    <img src="/photos/h.jpeg" id="img 8" alt="image 8" >
+                    <img src="/photos/i.jpeg" id="img 9" alt="image 9" >
+                </div>
+                <input type="text" id="password" placeholder="Enter image sequence">
+                <p id="attention">Enter your Graphical Password in Sequence</p>
+                <div class="image-input" id="passwordInput"></div>
+                <div class="but">
+                <form>
+                <button id="resetButton">Clear</button>
+                </form>
+                <button id="submit" type="submit">Sign In</button>
+                </div>
+            </div>
+           
+        </div>
+        <div class="toggle-container">
+            <div class="toggle"> 
+                <div class="toggle-panel toggle-right">
+                    <h1>Welcome Back!</h1>
+                    <p>Register with your personal details to use all of site features</p>
+                    <a href="/signup.html"><button class="hidden" id="register" >Sign Up</button></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+
+    <script type="module">
+        import { SHA256 } from "https://cdn.skypack.dev/crypto-js";
+        const firebaseConfig = { 
+    apiKey: "AIzaSyD0tbqEhBQmgkYNWXlH4gg43fdg8l2nrXY",
+    authDomain: "graph-9a921.firebaseapp.com",
+    projectId: "graph-9a921",
+    storageBucket: "graph-9a921.appspot.com",
+    messagingSenderId: "1066648472053",
+    appId: "1:1066648472053:web:6fbf8dc6eccac82aab38bc",
+    measurementId: "G-0S3R8QRBJZ" };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let usernameInput = document.getElementById("username");
+        let passwordInput = document.getElementById("password");
+        let submitButton = document.getElementById("submit");
+        const maxAttempts = 4;
+        const lockDuration = 60 * 60 * 1000; 
+
+        async function getUser() {
+            const username = usernameInput.value;
+            const password = passwordInput.value;
+            const hashedPassword = SHA256(password).toString();
+
+            const userRef = db.collection("userList").doc(usernameInput.value);
+
+            const doc = await userRef.get();
+
+            if (!doc.exists) {
+                alert('User does not exist');
+                return;
+            }
+
+            const userData = doc.data();
+            const storedPassword = userData.password;
+            let attempts = userData.attempts || 0;
+            const isLocked = userData.locked || false;
+            const lockTimestamp = userData.lockTimestamp || 0;
+            const now = Date.now();
+
+            if (isLocked && now - lockTimestamp < lockDuration) {
+                alert('Account is locked. Try again later.');
+                document.querySelector(".alert4").style.display = "block";
+                 setTimeout(() => {
+                 document.querySelector(".alert4").style.display = "none";
+                }, 1000);
+                return;
+            }
+
+            if (attempts >= maxAttempts) {
+                alert('Account locked. Exceeded maximum login attempts.');
+                document.querySelector(".alert3").style.display = "block";
+                 setTimeout(() => {
+                 document.querySelector(".alert3").style.display = "none";
+                }, 1000);
+                await userRef.update({
+                    locked: true,
+                    lockTimestamp: now
+                });
+                return;
+            }
+
+            if (hashedPassword === storedPassword) {
+
+                document.querySelector(".alert").style.display = "block";
+                setTimeout(() => {
+                document.querySelector(".alert").style.display = "none";
+                }, 3000);
+
+                alert('Authentication successful!');
+                attempts = 0; 
+            } 
+            else {
+                attempts++;
+
+                alert('Authentication failed: Incorrect password');
+                
+                document.querySelector(".alert2").style.display = "block";
+                 setTimeout(() => {
+                document.querySelector(".alert2").style.display = "none";
+                }, 1000);
+                
+                if (attempts === maxAttempts) {
+          alert('Account locked for 1 hours. Exceeded maximum login attempts.');
+        }
+            }
+
+            await userRef.update({
+                attempts: attempts
+            });
+        }
+        submitButton.addEventListener("click", getUser);
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
